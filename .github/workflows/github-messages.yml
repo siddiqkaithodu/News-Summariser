@@ -6,7 +6,7 @@ on:
     types:
       - submitted
 env:
-  REQUIRED_REVIEWS: 2
+  requested_reviewers: ${{ toJson(github.event.pull_request.requested_reviewers) }}
   GCHAT_WEBHOOK_URL: https://chat.googleapis.com/v1/spaces/AAAAu0pPs_8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=2OA68qb_Xv29GMQUPkYHIb2Sm3e3AspjdZ7DAaeNQ0A
 
 jobs:
@@ -29,16 +29,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          APPROVED_COUNT=$(gh pr review ${{ github.event.pull_request.number }} state --jq '[.[] | select(.state=="APPROVED")] | length')
-          REQUIRED_REVIEWS=$(gh repo view --json pullRequests --jq '.pullRequests.nodes[].reviewRequests.totalCount')
-          if [ "$APPROVED_COUNT" -ge "$REQUIRED_REVIEWS" ]; then
-            echo "All required reviews are fulfilled. Proceeding to notify Google Chat."
-          else
-            echo "Not all required reviews are fulfilled yet."
-          fi
+          echo ${{ toJson(github.event.pull_request) }}
+          # APPROVED_COUNT=$(gh pr review ${{ github.event.pull_request.number }} state --jq '[.[] | select(.state=="APPROVED")] | length')
+          # REQUIRED_REVIEWS=$(gh repo view --json pullRequests --jq '.pullRequests.nodes[].reviewRequests.totalCount')
+          # if [ "$APPROVED_COUNT" -ge "$REQUIRED_REVIEWS" ]; then
+          #   echo "All required reviews are fulfilled. Proceeding to notify Google Chat."
+          # else
+          #   echo "Not all required reviews are fulfilled yet."
+          # fi
 
       - name: Notify Google Chat to Merge Code
-        if: github.event.action == 'submitted' && env.APPROVED_COUNT >= env.REQUIRED_REVIEWS
+        if: github.event.action == 'submitted' && env.APPROVED_COUNT >= REQUIRED_REVIEWS
         env:
           WEBHOOK_URL: ${{ env.GCHAT_WEBHOOK_URL }}
         run: |
