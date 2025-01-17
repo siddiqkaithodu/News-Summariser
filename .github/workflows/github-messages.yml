@@ -17,14 +17,14 @@ jobs:
         with:
           script: |
             const github_instance = require('@actions/github');
-            const core = require('@actions/core');
+            const cores = require('@actions/core');
 
             const { context } = github_instance;
             const pullRequest = context.payload.pull_request;
 
-            core.setOutput('repo_name', context.repo.repository);
-            core.setOutput('pr_opener', pullRequest.user.login);
-            core.setOutput('required_approvals', pullRequest.required_approvals_review);
+            cores.setOutput('repo_name', context.repo.repository);
+            cores.setOutput('pr_opener', pullRequest.user.login);
+            cores.setOutput('required_approvals', pullRequest.required_approvals_review);
 
       - name: Post Google Chat message
         uses: julb/action-post-googlechat-message@v1
@@ -41,12 +41,12 @@ jobs:
         with:
           script: |
             const github_instance = require('@actions/github');
-            const core = require('@actions/core');
+            const cores = require('@actions/core');
 
             const { context } = github_instance;
             const pullRequest = context.payload.pull_request;
 
-            core.setOutput('approvals_count', pullRequest.reviews.filter(review => review.state === 'APPROVED').length);
+            cores.setOutput('approvals_count', pullRequest.reviews.filter(review => review.state === 'APPROVED').length);
 
       - name: Send Approval Updates
         uses: julb/action-post-googlechat-message@v1
