@@ -2,62 +2,53 @@ name: Pull Request Notifications
 env:
   GCHAT_WEBHOOK_URL: https://chat.googleapis.com/v1/spaces/AAAAu0pPs_8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=2OA68qb_Xv29GMQUPkYHIb2Sm3e3AspjdZ7DAaeNQ0A
 
+# on:
+#   pull_request:
+#     types: [opened, reopened, synchronize, review_requested, ready_for_review, labeled, unlabeled]
+# name: Notify Google Chat on Pull Request
+
 on:
   pull_request:
-    types: [opened, reopened, synchronize, review_requested, ready_for_review, labeled, unlabeled]
+    types:
+      - opened
+      - closed
+  pull_request_review:
+    types:
+      - submitted
 
 jobs:
-  notify_on_pr:
+  notify-google-chat:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # Notify when a PR is raised
+      - name: Notify Google Chat about PR Raised
+        if: github.event.action == 'opened'
+        env:
+          WEBHOOK_URL: ${{ env.GCHAT_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" -d '{
+            "text": "🚀 A new pull request has been raised: [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }}) by ${{ github.event.pull_request.user.login }}"
+          }' $WEBHOOK_URL
 
-      - name: Get PR Information
-        id: get_pr_info
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pullRequest = context.payload.pull_request;
+      # Notify when PR reviews are fulfilled
+      - name: Check if all reviews are approved
+        if: github.event.action == 'submitted'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APPROVED_COUNT=$(gh pr reviews ${{ github.event.pull_request.number }} --json state --jq '[.[] | select(.state=="APPROVED")] | length')
+          REQUIRED_REVIEWS=$(gh repo view --json pullRequests --jq '.pullRequests.nodes[].reviewRequests.totalCount')
+          if [ "$APPROVED_COUNT" -ge "$REQUIRED_REVIEWS" ]; then
+            echo "All required reviews are fulfilled. Proceeding to notify Google Chat."
+          else
+            echo "Not all required reviews are fulfilled yet."
+          fi
 
-            core.setOutput('repo_name', context.repo.repository);
-            core.setOutput('pr_opener', pullRequest.user.login);
-            core.setOutput('required_approvals', pullRequest.required_approvals_review);
-
-      - name: Post Google Chat message
-        uses: julb/action-post-googlechat-message@v1
-        with:
-          gchat_webhook_url: ${{ env.GCHAT_WEBHOOK_URL }}
-          message: |
-            New Pull Request!
-            **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
-            **Opened by:** ${{ steps.get_pr_info.outputs.pr_opener }}
-            **Required Approvals:** ${{ toJson(steps) }}
-            
-      - name: Wait for Approvals
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const pullRequest = context.payload.pull_request;
-
-            core.setOutput('approvals_count', pullRequest.reviews.filter(review => review.state === 'APPROVED').length);
-
-      - name: Send Approval Update
-        uses: julb/action-post-googlechat-message@v1
-        with:
-          gchat_webhook_url: ${{ env.GCHAT_WEBHOOK_URL }}
-          if: steps.wait_for_approvals.outputs.approvals_count > 0 && steps.wait_for_approvals.outputs.approvals_count < pullRequest.required_approvals_review
-          message: |
-            Pull Request Update!
-            * **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
-            * **Current Approvals:** ${{ steps.wait_for_approvals.outputs.approvals_count }} / ${{ steps.get_pr_info.outputs.required_approvals }}
-
-      - name: Send Merge Notification
-        uses: julb/action-post-googlechat-message@v1
-        with:
-          gchat_webhook_url: ${{ env.GCHAT_WEBHOOK_URL }}
-          if: $ {{steps.wait_for_approvals.outputs.approvals_count == pullRequest.required_approvals_review }}
-          message: |
-            🎉 Pull Request Ready to Merge! 🎉
-            * **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
-            * **Opened by:** ${{ steps.get_pr_info.outputs.pr_opener }}
+      - name: Notify Google Chat to Merge Code
+        if: github.event.action == 'submitted' && env.APPROVED_COUNT >= env.REQUIRED_REVIEWS
+        env:
+          WEBHOOK_URL: ${{ env.GCHAT_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" -d '{
+            "text": "✅ All reviews required are fulfilled for PR: [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }}). You can merge the code now!"
+          }' $WEBHOOK_URL
