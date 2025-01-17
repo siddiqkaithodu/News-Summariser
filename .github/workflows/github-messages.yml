@@ -40,7 +40,7 @@ jobs:
 
             core.setOutput('approvals_count', pullRequest.reviews.filter(review => review.state === 'APPROVED').length);
 
-      - name: Send Approval Updates
+      - name: Send Approval Update
         uses: julb/action-post-googlechat-message@v1
         with:
           gchat_webhook_url: ${{ secrets.GCHAT_WEBHOOK_URL }}
