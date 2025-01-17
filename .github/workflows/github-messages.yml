@@ -16,7 +16,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const github_instance = require('@actions/github');
             const cores = require('@actions/core');
             const pullRequest = context.payload.pull_request;
 
@@ -38,7 +37,6 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const github_instance = require('@actions/github');
             const cores = require('@actions/core');
             const pullRequest = context.payload.pull_request;
 
