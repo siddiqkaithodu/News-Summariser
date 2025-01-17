@@ -13,7 +13,7 @@ jobs:
 
       - name: Get PR Information
         id: get_pr_info
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const github = require('@actions/github');
@@ -62,7 +62,7 @@ jobs:
         uses: julb/action-post-googlechat-message@v1
         with:
           gchat_webhook_url: ${{ secrets.GCHAT_WEBHOOK_URL }}
-          if: steps.wait_for_approvals.outputs.approvals_count == pullRequest.required_approvals_review
+          if: $ {{steps.wait_for_approvals.outputs.approvals_count == pullRequest.required_approvals_review }}
           message: |
             🎉 Pull Request Ready to Merge! 🎉
             * **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
