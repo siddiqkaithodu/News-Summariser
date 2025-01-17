@@ -32,7 +32,7 @@ jobs:
             New Pull Request!
             **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
             **Opened by:** ${{ steps.get_pr_info.outputs.pr_opener }}
-            **Required Approvals:** ${{ toJson(steps.get_pr_info.outputs) }}
+            **Required Approvals:** ${{ toJson(steps.get_pr_info) }}
             
       - name: Wait for Approvals
         uses: actions/github-script@v6
