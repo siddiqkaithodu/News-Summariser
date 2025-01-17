@@ -38,11 +38,11 @@ jobs:
           #   echo "Not all required reviews are fulfilled yet."
           # fi
 
-      - name: Notify Google Chat to Merge Code
-        if: github.event.action == 'submitted' && env.APPROVED_COUNT >= REQUIRED_REVIEWS
-        env:
-          WEBHOOK_URL: ${{ env.GCHAT_WEBHOOK_URL }}
-        run: |
-          curl -X POST -H "Content-Type: application/json" -d '{
-            "text": "✅ All reviews required are fulfilled for PR: [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }}). You can merge the code now!"
-          }' $WEBHOOK_URL
+      # - name: Notify Google Chat to Merge Code
+      #   if: github.event.action == 'submitted' && env.APPROVED_COUNT >= REQUIRED_REVIEWS
+      #   env:
+      #     WEBHOOK_URL: ${{ env.GCHAT_WEBHOOK_URL }}
+      #   run: |
+      #     curl -X POST -H "Content-Type: application/json" -d '{
+      #       "text": "✅ All reviews required are fulfilled for PR: [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }}). You can merge the code now!"
+      #     }' $WEBHOOK_URL
