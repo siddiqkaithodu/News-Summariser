@@ -28,7 +28,7 @@ jobs:
         uses: julb/action-post-googlechat-message@v1
         with:
           gchat_webhook_url: ${{ env.GCHAT_WEBHOOK_URL }}
-          message:
+          message: |
             New Pull Request!
             **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
             **Opened by:** ${{ steps.get_pr_info.outputs.pr_opener }}
