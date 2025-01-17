@@ -29,20 +29,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo ${{ toJson(github.event.pull_request) }}
-          # APPROVED_COUNT=$(gh pr review ${{ github.event.pull_request.number }} state --jq '[.[] | select(.state=="APPROVED")] | length')
-          # REQUIRED_REVIEWS=$(gh repo view --json pullRequests --jq '.pullRequests.nodes[].reviewRequests.totalCount')
-          # if [ "$APPROVED_COUNT" -ge "$REQUIRED_REVIEWS" ]; then
-          #   echo "All required reviews are fulfilled. Proceeding to notify Google Chat."
-          # else
-          #   echo "Not all required reviews are fulfilled yet."
-          # fi
+          APPROVED_COUNT=$(gh pr review ${{ github.event.pull_request.number }} state --jq '[.[] | select(.state=="APPROVED")] | length')
+          REQUIRED_REVIEWS=$(gh repo view --json pullRequests --jq '.pullRequests.nodes[].reviewRequests.totalCount')
+          if [ "$APPROVED_COUNT" -ge "$REQUIRED_REVIEWS" ]; then
+            echo "All required reviews are fulfilled. Proceeding to notify Google Chat."
+          else
+            echo "Not all required reviews are fulfilled yet."
+          fi
 
-      # - name: Notify Google Chat to Merge Code
-      #   if: github.event.action == 'submitted' && env.APPROVED_COUNT >= REQUIRED_REVIEWS
-      #   env:
-      #     WEBHOOK_URL: ${{ env.GCHAT_WEBHOOK_URL }}
-      #   run: |
-      #     curl -X POST -H "Content-Type: application/json" -d '{
-      #       "text": "✅ All reviews required are fulfilled for PR: [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }}). You can merge the code now!"
-      #     }' $WEBHOOK_URL
+      - name: Notify Google Chat to Merge Code
+        if: github.event.action == 'submitted' && env.APPROVED_COUNT >= env.REQUIRED_REVIEWS
+        env:
+          WEBHOOK_URL: ${{ env.GCHAT_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" -d '{
+            "text": "✅ All reviews required are fulfilled for PR: [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }}). You can merge the code now!"
+          }' $WEBHOOK_URL
