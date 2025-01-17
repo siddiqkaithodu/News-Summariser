@@ -27,7 +27,7 @@ jobs:
       - name: Post Google Chat message
         uses: julb/action-post-googlechat-message@v1
         with:
-          gchat_webhook_url: ${{ GCHAT_WEBHOOK_URL }}
+          gchat_webhook_url: ${{ env.GCHAT_WEBHOOK_URL }}
           message:
             New Pull Request!
             * **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
@@ -45,7 +45,7 @@ jobs:
       - name: Send Approval Update
         uses: julb/action-post-googlechat-message@v1
         with:
-          gchat_webhook_url: ${{ GCHAT_WEBHOOK_URL }}
+          gchat_webhook_url: ${{ env.GCHAT_WEBHOOK_URL }}
           if: steps.wait_for_approvals.outputs.approvals_count > 0 && steps.wait_for_approvals.outputs.approvals_count < pullRequest.required_approvals_review
           message: |
             Pull Request Update!
@@ -55,7 +55,7 @@ jobs:
       - name: Send Merge Notification
         uses: julb/action-post-googlechat-message@v1
         with:
-          gchat_webhook_url: ${{ GCHAT_WEBHOOK_URL }}
+          gchat_webhook_url: ${{ env.GCHAT_WEBHOOK_URL }}
           if: $ {{steps.wait_for_approvals.outputs.approvals_count == pullRequest.required_approvals_review }}
           message: |
             🎉 Pull Request Ready to Merge! 🎉
