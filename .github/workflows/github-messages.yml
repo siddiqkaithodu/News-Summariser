@@ -1,5 +1,6 @@
 name: Pull Request Notifications
 env:
+  REQUIRED_REVIEWS: 2
   GCHAT_WEBHOOK_URL: https://chat.googleapis.com/v1/spaces/AAAAu0pPs_8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=2OA68qb_Xv29GMQUPkYHIb2Sm3e3AspjdZ7DAaeNQ0A
 
 # on:
