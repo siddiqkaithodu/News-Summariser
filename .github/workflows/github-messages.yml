@@ -1,19 +1,13 @@
 name: Pull Request Notifications
-env:
-  REQUIRED_REVIEWS: 2
-  GCHAT_WEBHOOK_URL: https://chat.googleapis.com/v1/spaces/AAAAu0pPs_8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=2OA68qb_Xv29GMQUPkYHIb2Sm3e3AspjdZ7DAaeNQ0A
-
-# on:
-#   pull_request:
-#     types: [opened, reopened, synchronize, review_requested, ready_for_review, labeled, unlabeled]
-# name: Notify Google Chat on Pull Request
-
 on:
   pull_request:
     types: [opened, reopened, synchronize, review_requested, ready_for_review, labeled, unlabeled]
   pull_request_review:
     types:
       - submitted
+env:
+  REQUIRED_REVIEWS: 2
+  GCHAT_WEBHOOK_URL: https://chat.googleapis.com/v1/spaces/AAAAu0pPs_8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=2OA68qb_Xv29GMQUPkYHIb2Sm3e3AspjdZ7DAaeNQ0A
 
 jobs:
   notify-google-chat:
@@ -35,7 +29,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          APPROVED_COUNT=$(gh pr reviews ${{ github.event.pull_request.number }} --json state --jq '[.[] | select(.state=="APPROVED")] | length')
+          APPROVED_COUNT=$(gh pr reviews ${{ github.event.pull_request.number }} state --jq '[.[] | select(.state=="APPROVED")] | length')
           REQUIRED_REVIEWS=$(gh repo view --json pullRequests --jq '.pullRequests.nodes[].reviewRequests.totalCount')
           if [ "$APPROVED_COUNT" -ge "$REQUIRED_REVIEWS" ]; then
             echo "All required reviews are fulfilled. Proceeding to notify Google Chat."
