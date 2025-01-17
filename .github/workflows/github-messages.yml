@@ -1,0 +1,69 @@
+name: Pull Request Notifications
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, review_requested, ready_for_review, labeled, unlabeled]
+
+jobs:
+  notify_on_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get PR Information
+        id: get_pr_info
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const github = require('@actions/github');
+            const core = require('@actions/core');
+
+            const { context } = github;
+            const pullRequest = context.payload.pull_request;
+
+            core.setOutput('repo_name', context.repo.repository);
+            core.setOutput('pr_opener', pullRequest.user.login);
+            core.setOutput('required_approvals', pullRequest.required_approvals_review);
+
+      - name: Post Google Chat message
+        uses: julb/action-post-googlechat-message@v1
+        with:
+          gchat_webhook_url: ${{ secrets.GCHAT_WEBHOOK_URL }}
+          message:
+            New Pull Request!
+            * **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
+            * **Opened by:** ${{ steps.get_pr_info.outputs.pr_opener }}
+            * **Required Approvals:** ${{ steps.get_pr_info.outputs.required_approvals }}
+            
+      - name: Wait for Approvals
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const github = require('@actions/github');
+            const core = require('@actions/core');
+
+            const { context } = github;
+            const pullRequest = context.payload.pull_request;
+
+            core.setOutput('approvals_count', pullRequest.reviews.filter(review => review.state === 'APPROVED').length);
+
+      - name: Send Approval Updates
+        uses: julb/action-post-googlechat-message@v1
+        with:
+          gchat_webhook_url: ${{ secrets.GCHAT_WEBHOOK_URL }}
+          if: steps.wait_for_approvals.outputs.approvals_count > 0 && steps.wait_for_approvals.outputs.approvals_count < pullRequest.required_approvals_review
+          message: |
+            Pull Request Update!
+            * **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
+            * **Current Approvals:** ${{ steps.wait_for_approvals.outputs.approvals_count }} / ${{ steps.get_pr_info.outputs.required_approvals }}
+
+      - name: Send Merge Notification
+        uses: julb/action-post-googlechat-message@v1
+        with:
+          gchat_webhook_url: ${{ secrets.GCHAT_WEBHOOK_URL }}
+          if: steps.wait_for_approvals.outputs.approvals_count == pullRequest.required_approvals_review
+          message: |
+            🎉 Pull Request Ready to Merge! 🎉
+            * **Repository:** ${{ steps.get_pr_info.outputs.repo_name }}
+            * **Opened by:** ${{ steps.get_pr_info.outputs.pr_opener }}
