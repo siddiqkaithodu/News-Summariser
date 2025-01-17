@@ -18,8 +18,6 @@ jobs:
           script: |
             const github_instance = require('@actions/github');
             const cores = require('@actions/core');
-
-            const { context } = github_instance;
             const pullRequest = context.payload.pull_request;
 
             cores.setOutput('repo_name', context.repo.repository);
@@ -42,8 +40,6 @@ jobs:
           script: |
             const github_instance = require('@actions/github');
             const cores = require('@actions/core');
-
-            const { context } = github_instance;
             const pullRequest = context.payload.pull_request;
 
             cores.setOutput('approvals_count', pullRequest.reviews.filter(review => review.state === 'APPROVED').length);
