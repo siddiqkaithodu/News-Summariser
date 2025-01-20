@@ -29,7 +29,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          APPROVED_COUNT=$(gh pr review ${{ github.event.pull_request.number }} state --jq '[.[] | select(.state=="APPROVED")] | length')
+        
+          APPROVED_COUNT=$(gh api --header 'Accept: application/vnd.github+json' --method GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews state --jq '[.[] | select(.state=="APPROVED")] | length')
           REQUIRED_REVIEWS=$(gh repo view --json pullRequests --jq '.pullRequests.nodes[].reviewRequests.totalCount')
           if [ "$APPROVED_COUNT" -ge "$REQUIRED_REVIEWS" ]; then
             echo "All required reviews are fulfilled. Proceeding to notify Google Chat."
