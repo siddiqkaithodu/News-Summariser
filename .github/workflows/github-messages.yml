@@ -1,0 +1,113 @@
+
+name: Notify Google Chat on Pull Requests
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - review_requested
+      - review_submitted
+
+jobs:
+  notify-google-chat:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout the repository
+      uses: actions/checkout@v3
+
+    - name: Notify Google Chat
+      env:
+        GOOGLE_CHAT_WEBHOOK: https://chat.googleapis.com/v1/spaces/AAAAu0pPs_8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=2OA68qb_Xv29GMQUPkYHIb2Sm3e3AspjdZ7DAaeNQ0A
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Fetch PR details
+        PR_NUMBER=$(jq -r '.pull_request.number' < "$GITHUB_EVENT_PATH")
+        PR_URL=$(jq -r '.pull_request.html_url' < "$GITHUB_EVENT_PATH")
+        PR_TITLE=$(jq -r '.pull_request.title' < "$GITHUB_EVENT_PATH")
+
+        # Get required review count and current review status
+        REPO_OWNER=${{ github.repository_owner }}
+        REPO_NAME=${{ github.event.repository.name }}
+        PR_API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${PR_NUMBER}"
+        REVIEWS_API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${PR_NUMBER}/reviews"
+
+        REQUIRED_REVIEWS=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          $PR_API_URL | jq '.required_reviewers | length')
+
+        CURRENT_APPROVED=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          $REVIEWS_API_URL | jq '[.[] | select(.state == "APPROVED")] | length')
+
+        # Message to Google Chat
+        if [ "${{ github.event.action }}" == "opened" ]; then
+          MESSAGE="A new pull request has been created: *${PR_TITLE}*.\nURL: ${PR_URL}\nReviews Required: ${REQUIRED_REVIEWS}"
+        elif [ "${{ github.event.action }}" == "synchronize" ]; then
+          MESSAGE="The pull request *${PR_TITLE}* has been updated after a review.\nURL: ${PR_URL}"
+        elif [ "${{ github.event.action }}" == "review_submitted" ]; then
+          if [ "$CURRENT_APPROVED" -eq "$REQUIRED_REVIEWS" ]; then
+            MESSAGE="All reviews for *${PR_TITLE}* are complete! You can now merge the code.\nURL: ${PR_URL}"
+          else
+            MESSAGE="A new review has been submitted for *${PR_TITLE}*. Current Approved: ${CURRENT_APPROVED}/${REQUIRED_REVIEWS}\nURL: ${PR_URL}"
+          fi
+        fi
+
+        # Send message to Google Chat
+        curl -X POST -H "Content-Type: application/json" \
+          -d "{\"text\": \"${MESSAGE}\"}" \
+          "$GOOGLE_CHAT_WEBHOOK"
+
+
+
+
+
+# name: Pull Request Notifications
+# on:
+#   pull_request:
+#     types: [opened, reopened, synchronize, review_requested, ready_for_review, labeled, unlabeled]
+#   pull_request_review:
+#     types:
+#       - submitted
+# env:
+#   requested_reviewers: ${{ toJson(github.event.pull_request.requested_reviewers) }}
+#   GCHAT_WEBHOOK_URL: https://chat.googleapis.com/v1/spaces/AAAAu0pPs_8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=2OA68qb_Xv29GMQUPkYHIb2Sm3e3AspjdZ7DAaeNQ0A
+
+# jobs:
+#   notify-google-chat:
+#     runs-on: ubuntu-latest
+#     steps:
+#       # Notify when a PR is raised
+#       - name: Notify Google Chat about PR Raised
+#         if: github.event.action == 'opened'
+#         env:
+#           WEBHOOK_URL: ${{ env.GCHAT_WEBHOOK_URL }}
+#         run: |
+#           curl -X POST -H "Content-Type: application/json" -d '{
+#             "text": "🚀 A new pull request has been raised: [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }}) by ${{ github.event.pull_request.user.login }}"
+#           }' $WEBHOOK_URL
+
+#       # Notify when PR reviews are fulfilled
+#       - name: Check if all reviews are approved
+#         if: github.event.action == 'submitted'
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         run: |
+#           echo gh api --method GET /repos/siddiqkaithodu/news-summariser/pulls/1/reviews
+#           APPROVED_COUNT=$(gh api --header 'Accept: application/vnd.github+json' --method GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews state --jq '[.[] | select(.state=="APPROVED")] | length')
+#           REQUIRED_REVIEWS=$(gh repo view --json pullRequests --jq '.pullRequests.nodes[].reviewRequests.totalCount')
+#           if [ "$APPROVED_COUNT" -ge "$REQUIRED_REVIEWS" ]; then
+#             echo "All required reviews are fulfilled. Proceeding to notify Google Chat."
+#           else
+#             echo "Not all required reviews are fulfilled yet."
+#           fi
+
+#       - name: Notify Google Chat to Merge Code
+#         if: github.event.action == 'submitted' && env.APPROVED_COUNT >= env.REQUIRED_REVIEWS
+#         env:
+#           WEBHOOK_URL: ${{ env.GCHAT_WEBHOOK_URL }}
+#         run: |
+#           curl -X POST -H "Content-Type: application/json" -d '{
+#             "text": "✅ All reviews required are fulfilled for PR: [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }}). You can merge the code now!"
+#           }' $WEBHOOK_URL
